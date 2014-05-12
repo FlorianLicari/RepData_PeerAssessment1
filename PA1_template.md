@@ -1,0 +1,242 @@
+Reproducible Research - Course Project 1
+========================================================
+
+### Loading and preprocessing the data
+To load and preprocess the data for my analysis, I run the following code.  
+ 
+
+```r
+# First, I load the data within the 'activity.csv' file in the workspace
+# using the read.csv function
+DF <- read.csv("activity.csv")
+# Then I do my preprocessing. Here I only convert the date to Date classes
+# in R.
+DF$date <- as.Date(DF$date, origin = "2012-10-01")
+```
+
+
+### What is mean total number of steps taken per day?  
+It is said that for this part of assignement, we can *ignore the missing values* in the dataset. So *no special processing* will be made (for now) to remove them from the dataset.  
+
+To begin with my analysis, I plot a **histogram of the total number of steps taken each day**.
+
+
+```r
+# First, I use the 'tapply' function to estimate the total number of steps
+# taken each day.
+stepsByDay <- tapply(DF$steps, DF$date, sum)
+# To plot the histogram, I choose to use the hist function from the base
+# plotting system
+hist(stepsByDay, breaks = 20, col = "red", xlab = "Number of steps by day", 
+    main = "Histogram of the total number of steps taken each day")
+```
+
+![plot of chunk histogram of the total number of steps taken each day [with NA]](figure/histogram_of_the_total_number_of_steps_taken_each_day__with_NA_.png) 
+
+
+At first sight, we can see that there is a significant number of days whom number of steps taken is very low. It may be due to the presence of missing values in the dataset. But we can't conclude for the moment.
+
+Then I estimate the **mean** and **median** total number of steps taken per day using the following R code.  
+
+
+```r
+mean <- mean(stepsByDay, na.rm = TRUE)
+median <- median(stepsByDay, na.rm = TRUE)
+```
+
+
+So, at the end of this part, both **mean** and **median** have been estimated.
+The **mean** is **10766 steps** a day and the **median** is **10765 steps** a day.  
+
+### What is the average daily activity pattern?
+First, I make a *time series plot of the 5-minute interval (x-axis) and the 
+average number of steps taken, averaged across all days (y-axis)*. In that aim,
+the averaged number of steps taken by 5-min interval have to be calculated. Here 
+again, we use the **tapply** function.
+
+
+```r
+stepsByInterval <- tapply(DF$steps, DF$interval, mean, na.rm = TRUE)
+```
+
+
+Now the plot can be made.
+
+
+```r
+numberOfInterval <- 24 * 60/5
+plot(x = DF$interval[1:numberOfInterval], y = stepsByInterval, type = "l", xlab = "Time", 
+    ylab = "Number of steps", main = "Averaged number of steps by \n     5-minute interval", 
+    xaxt = "n")
+axis(1, seq(1, 2400, length.out = 5), labels = c("0h", "6h", "12h", "18h", "24h"))
+```
+
+![plot of chunk average daily activity pattern [with NA]](figure/average_daily_activity_pattern__with_NA_.png) 
+
+
+Visually, the 5-minute interval containing **the maximum number of steps seems to be around 8:00** but a more precise value can be found within **stepsByInterval** with some calculation.  
+
+
+```r
+max <- max(stepsByInterval)
+startInterval <- names(stepsByInterval)[which.max(stepsByInterval)]
+endInterval <- names(stepsByInterval)[which.max(stepsByInterval) + 1]
+# The following code is used to diplay 'correctly' the hour.
+startInterval <- paste(rep(x = "0", time = 4 - nchar(startInterval)), startInterval, 
+    sep = "")
+begin <- format(strptime(startInterval, "%H%M"), "%H:%M")
+endInterval <- paste(rep(x = "0", time = 4 - nchar(endInterval)), endInterval, 
+    sep = "")
+end <- format(strptime(endInterval, "%H%M"), "%H:%M")
+```
+
+
+The maximum number of steps is made between **08:35** and **08:40**. And the maximum is **206 steps during this 5-minute interval**.
+
+### Imputing missing values  
+Before, the **missing values** have been **ignored**.However **their presence may introduce bias** into my analysis. So in this part, we try to get rid of these missing values.  
+
+
+```r
+numberNA <- sum(!complete.cases(DF))
+```
+
+
+Using the **complete.cases function** from R, **2304 missing values** are found in our dataset.  
+
+To impute the missing values, **I choose to fill in all of the missing values in the dataset with the mean for that 5-minute interval**.  To that extent, I create a new dataset that is equal to the original dataset but witht the missing values filled in.
+
+
+```r
+newDF <- DF
+for (i in 1:nrow(newDF)) {
+    if (is.na(newDF$steps[i])) {
+        newDF$steps[i] <- stepsByInterval[as.character(newDF$interval[i])]
+    }
+}
+```
+
+
+Now that the missing values have been filled in, we can re-plot a histogram of the total number of steps taken each day adapting the previous R code.
+
+
+```r
+stepsByDayNoNA <- tapply(newDF$steps, newDF$date, sum)
+hist(stepsByDayNoNA, breaks = 20, col = "red", xlab = "Number of steps by day", 
+    main = "Histogram of the total number of steps taken each day")
+```
+
+![plot of chunk histogram of the total number of steps taken each day [without NA]](figure/histogram_of_the_total_number_of_steps_taken_each_day__without_NA_.png) 
+
+
+We observe a **slightly difference between the histograms with or without missing values**. Indeed, the **peak is higher than before**.  
+
+Now we recalculate the mean and median total number of steps taken per day to observe if these values differ from the estimates from the first part of the assigment.
+ 
+
+```r
+newMean <- mean(stepsByDayNoNA, na.rm = TRUE)
+newMedian <- median(stepsByDayNoNA, na.rm = TRUE)
+```
+
+
+The new **mean** and the new **median** have now been estimated again. The **mean** is **10766 steps** a day and the **median** is **10766 steps** a day.  We observe that **these new values don't differ from the estimates from the first part**. Indeed, the mean is exactly the same whereas the median differs just by one step.  
+
+We can conclude that in this case, **imputing missing values (with the chosen strategy) doesn't alter the total daily number of steps**.
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+First, I create a new *factor variable* called **weekday** with two levels – “weekday” and “weekend” *indicating whether a given date is a weekday or weekend day*.   
+
+
+```r
+weekday <- weekdays(newDF$date, abbreviate = TRUE)
+for (i in 1:length(weekday)) {
+    if (weekday[i] %in% c("Sam", "Dim")) {
+        weekday[i] <- "weekend"
+    } else {
+        weekday[i] <- "weekday"
+    }
+}
+weekday <- factor(weekday, levels = c("weekday", "weekend"))
+str(weekday)
+```
+
+```
+##  Factor w/ 2 levels "weekday","weekend": 1 1 1 1 1 1 1 1 1 1 ...
+```
+
+
+Then, I insert this new variable in the dataset with no missing values using the *cbind* function.  
+
+
+```r
+newDF <- cbind(newDF, weekday)
+head(newDF, 3)
+```
+
+```
+##    steps       date interval weekday
+## 1 1.7170 2012-10-01        0 weekday
+## 2 0.3396 2012-10-01        5 weekday
+## 3 0.1321 2012-10-01       10 weekday
+```
+
+```r
+str(newDF)
+```
+
+```
+## 'data.frame':	17568 obs. of  4 variables:
+##  $ steps   : num  1.717 0.3396 0.1321 0.1509 0.0755 ...
+##  $ date    : Date, format: "2012-10-01" "2012-10-01" ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
+##  $ weekday : Factor w/ 2 levels "weekday","weekend": 1 1 1 1 1 1 1 1 1 1 ...
+```
+
+
+Now, I can finally make a planet plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). To that extent, I re-use and adapt some of the previous r code chunks.
+
+
+```r
+# First, I choose to create a new dataframe which includes all the data
+# usefull for this plot.
+x <- newDF[newDF$weekday == "weekend", ]
+y <- newDF[newDF$weekday == "weekday", ]
+stepsByWeekend <- tapply(x$steps, x$interval, mean, na.rm = TRUE)
+stepsByWeekday <- tapply(y$steps, y$interval, mean, na.rm = TRUE)
+level <- rep(c("weekday", "weekend"), each = length(stepsByWeekday))
+level <- factor(level, levels = c("weekday", "weekend"), labels = c("weekday", 
+    "weekend"))
+z <- append(stepsByWeekday, stepsByWeekend)
+z <- as.data.frame(z)
+numberOfInterval <- 24 * 60/5
+z <- cbind(z, newDF$interval[1:numberOfInterval], level)
+names(z) <- c("Value", "Interval", "Weekday")
+# Then I can plot using lattice
+library(lattice)
+xyplot(Value ~ Interval | Weekday, data = z, layout = c(1, 2), type = "l", xlab = "Interval", 
+    ylab = "Number of steps")
+```
+
+![plot of chunk activity patterns between weekdays and weekends](figure/activity_patterns_between_weekdays_and_weekends.png) 
+
+
+At first sight, **the pattern differs greatly between a weekday day and a weekend day**. During a weekday day, there is (as viewed before) a high peak around 8:30 while the weekend day pattern is more 'balanced'. Besides, the number of steps seems greater for a weekend day because the area below the plot seems bigger than for a weekday day.
+
+Finally, to answer to the question whether or not, there are differences in activity patterns between weekdays and weekends. I estimate the mean and median for both weekday day and weekend day. I also estimate the standard deviation.
+
+
+```r
+meanWeekend <- mean(stepsByWeekend, na.rm = TRUE)
+medianWeekend <- median(stepsByWeekend, na.rm = TRUE)
+sdWeekend <- sd(stepsByWeekend, na.rm = TRUE)
+meanWeekday <- mean(stepsByWeekday, na.rm = TRUE)
+medianWeekday <- median(stepsByWeekday, na.rm = TRUE)
+sdWeekday <- sd(stepsByWeekday, na.rm = TRUE)
+```
+
+
+The **mean for a weekday day** is **35 steps** a day when the **mean for a weekend day** is **42 steps** a day. On the other hand, the **median for a weekday day** is **25 steps** a day when the **median for a weekend day** is **32 steps** a day. Finally, the **standard deviation for a weekday day** is **41.6192**when the **standard deviation for a weekend day** is **42.5439**.
+
+So, **there is indeed more steps taken a weekend day than a weekday day. But the standard deviation remains quite the same**.
