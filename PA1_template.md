@@ -24,7 +24,7 @@ To begin with my analysis, I plot a **histogram of the total number of steps tak
 ```r
 # First, I use the 'tapply' function to estimate the total number of steps
 # taken each day.
-stepsByDay <- tapply(DF$steps, DF$date, sum)
+stepsByDay <- tapply(DF$steps, DF$date, sum, na.rm = TRUE)
 # To plot the histogram, I choose to use the hist function from the base
 # plotting system
 hist(stepsByDay, breaks = 20, col = "red", xlab = "Number of steps by day", 
@@ -46,7 +46,7 @@ median <- median(stepsByDay, na.rm = TRUE)
 
 
 So, at the end of this part, both **mean** and **median** have been estimated.
-The **mean** is **10766 steps** a day and the **median** is **10765 steps** a day.  
+The **mean** is **9354 steps** a day and the **median** is **10395 steps** a day.  
 
 ### What is the average daily activity pattern?
 First, I make a *time series plot of the 5-minute interval (x-axis) and the 
@@ -121,7 +121,7 @@ Now that the missing values have been filled in, we can re-plot a histogram of t
 
 
 ```r
-stepsByDayNoNA <- tapply(newDF$steps, newDF$date, sum)
+stepsByDayNoNA <- tapply(newDF$steps, newDF$date, sum, na.rm = TRUE)
 hist(stepsByDayNoNA, breaks = 20, col = "red", xlab = "Number of steps by day", 
     main = "Histogram of the total number of steps taken each day")
 ```
@@ -129,7 +129,7 @@ hist(stepsByDayNoNA, breaks = 20, col = "red", xlab = "Number of steps by day",
 ![plot of chunk histogram of the total number of steps taken each day [without NA]](figure/histogram_of_the_total_number_of_steps_taken_each_day__without_NA_.png) 
 
 
-We observe a **slightly difference between the histograms with or without missing values**. Indeed, the **peak is higher than before**.  
+We observe a **slightly difference between the histograms with or without missing values**. Indeed, the **peak around 10,000 steps is higher than before** and **the peak around 0 steps has drasticly dropped**.  
 
 Now we recalculate the mean and median total number of steps taken per day to observe if these values differ from the estimates from the first part of the assigment.
  
@@ -140,9 +140,9 @@ newMedian <- median(stepsByDayNoNA, na.rm = TRUE)
 ```
 
 
-The new **mean** and the new **median** have now been estimated again. The **mean** is **10766 steps** a day and the **median** is **10766 steps** a day.  We observe that **these new values don't differ from the estimates from the first part**. Indeed, the mean is exactly the same whereas the median differs just by one step.  
+The new **mean** and the new **median** have now been estimated again. The **mean** is **10766 steps** a day and the **median** is **10766 steps** a day.  We observe that **these new values do differ from the estimates from the first part**. Indeed, the 'new' mean has about 1,400 more steps and the 'new' median have 400 more steps than the previous ones.  
 
-We can conclude that in this case, **imputing missing values (with the chosen strategy) doesn't alter the total daily number of steps**.
+We can conclude that in this case, **imputing missing values (with the chosen strategy) alters the total daily number of steps**.
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
